@@ -10,6 +10,7 @@ Type=simple
 ExecStart=/usr/local/bin/alertmanager \
     --config.file /etc/alertmanager/alertmanager.yml \
     --storage.path /var/lib/alertmanager/data
+    --web.listen-address=127.0.0.1:9093
 Restart=always
 
 [Install]
