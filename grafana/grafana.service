@@ -1,0 +1,15 @@
+[Unit]
+Description=Grafana
+Documentation=http://docs.grafana.org
+After=network.target
+
+[Service]
+User=grafana
+Group=grafana
+ExecStart=/usr/local/bin/grafana-server web
+WorkingDirectory=/var/lib/grafana
+LimitNOFILE=4096
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

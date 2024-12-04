@@ -1,34 +1,41 @@
 #!/bin/bash
 
-# Install prerequisite packages
-sudo apt-get install -y apt-transport-https software-properties-common wget
+# Make Grafana user
+sudo adduser --no-create-home --disabled-login --shell /bin/false --gecos "Grafana User" grafana
 
-# Import the Grafana GPG key
-sudo mkdir -p /etc/apt/keyrings/
-wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
+# Make directories necessary for Grafana
+sudo mkdir -p /etc/grafana/provisioning/datasources
+sudo mkdir -p /etc/grafana/provisioning/dashboards
+sudo mkdir -p /var/lib/grafana
 
-# Add the repository for stable releases
-echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
+# Set permissions for the Grafana directories
+sudo chown -R grafana:grafana /etc/grafana
+sudo chown -R grafana:grafana /var/lib/grafana
 
-# Optionally, add the repository for beta releases (if you want to install beta releases)
-# echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com beta main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
+# Download and install Grafana
+VERSION=$(curl https://raw.githubusercontent.com/grafana/grafana/master/VERSION)
+wget https://dl.grafana.com/oss/release/grafana-${VERSION}.linux-amd64.tar.gz
+tar -xzvf grafana-${VERSION}.linux-amd64.tar.gz
 
-# Update the list of available packages
-sudo apt-get update
+# Copy binaries to the appropriate location
+sudo cp grafana-${VERSION}/bin/grafana-server /usr/sbin/
+sudo cp grafana-${VERSION}/bin/grafana-cli /usr/sbin/
+sudo cp -r grafana-${VERSION}/conf /etc/grafana
+sudo cp -r grafana-${VERSION}/public /usr/share/grafana
 
-# Install the latest stable Grafana OSS release
-sudo apt-get install -y grafana
+# Populate configuration files (datasource and service)
+cat ./grafana/datasource.yml | sudo tee /etc/grafana/provisioning/datasources/datasource.yml
+cat ./grafana/grafana.service | sudo tee /etc/systemd/system/grafana.service
 
-# If you want to install the Enterprise version instead, uncomment the following line:
-# sudo apt-get install -y grafana-enterprise
+# Copy dashboards (Node Exporter and Blackbox Exporter)
+sudo cp ./grafana/dashboards/*.json /etc/grafana/provisioning/dashboards/
+# Reload systemd and enable Grafana service
+sudo systemctl daemon-reload
+sudo systemctl enable grafana
+sudo systemctl start grafana
 
-# Enable and start Grafana service
-sudo systemctl enable grafana-server
-sudo systemctl start grafana-server
+# Cleanup installation files
+rm -rf grafana-${VERSION}.linux-amd64.tar.gz
+rm -rf grafana-${VERSION}.linux-amd64
 
-# Installation cleanup (optional)
-# sudo rm -f grafana_11.3.1_amd64.deb
-
-echo "Grafana installation complete."
-echo "Grafana should now be running on http://localhost:3000"
-echo "You can access Grafana using the default credentials: admin/admin"
+echo "Grafana installation and configuration complete!"
