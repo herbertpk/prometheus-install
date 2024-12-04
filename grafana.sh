@@ -12,8 +12,23 @@ sudo mkdir -p /var/lib/grafana
 sudo chown -R grafana:grafana /etc/grafana
 sudo chown -R grafana:grafana /var/lib/grafana
 
+
+# Check if jq is installed, if not, install it
+if ! command -v jq &> /dev/null; then
+    echo "jq not found, installing..."
+    sudo apt-get update && sudo apt-get install -y jq  # For Debian/Ubuntu
+    # Uncomment below line for CentOS/RHEL/Fedora:
+    # sudo yum install -y jq
+else
+    echo "jq is already installed."
+fi
+
+
+
+
+
 # Download and install Grafana
-VERSION=$(curl https://raw.githubusercontent.com/grafana/grafana/master/VERSION)
+VERSION=$(curl -s https://api.github.com/repos/grafana/grafana/releases/latest | jq -r .tag_name)
 wget https://dl.grafana.com/oss/release/grafana-${VERSION}.linux-amd64.tar.gz
 tar -xzvf grafana-${VERSION}.linux-amd64.tar.gz
 
